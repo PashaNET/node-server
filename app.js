@@ -3,27 +3,24 @@
 */
 
 //Dependencies
-const http = require('http'),
-      https = require('https'),
-      config = require('./config'),
-      unifiedServer = require('./unifiedServer'),
-      fs = require('fs');
+const unifiedServer = require('./unifiedServer'),
+      os = require('os'),
+      cluster = require('cluster');
 
-const httpServer = http.createServer((req, res) => {
-  unifiedServer(req, res);
-});
+let app = {};
 
-let httpsServerParams = {
-  key : fs.readFileSync('./https/key.pem'),
-  cert : fs.readFileSync('./https/cert.pem')
+app.init = () => {
+    if(cluster.isMaster){
+        //if it is master we will user this section for running cli, workers etc
+
+        //Fork the process according to cores quantity
+        for(let i = 0; os.cpus().length > 0; i++){
+          cluster.fork();
+        }
+    } else {
+        //if it is fork we run HTTP server here
+        unifiedServer.init();
+    }
 }
-const httpsServer = https.createServer(httpsServerParams, (req, res) => {
-  unifiedServer(req, res);
-});
 
-httpServer.listen(config.httpPort, () => {
-  console.log('Server started on port ' + config.httpPort + ' with ' + config.envName + ' evn' );
-});
-httpsServer.listen(config.httpsPort, () => {
-  console.log('Server started on port ' + config.httpsPort + ' with ' + config.envName + ' evn' );
-});
+app.init();

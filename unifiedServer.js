@@ -1,7 +1,39 @@
-const StringDecoder = require('string_decoder').StringDecoder,
-      url = require('url');
+/**
+ *  Server start logic
+ */
 
-function unifiedServer(req, res){
+//Dependencies
+const StringDecoder = require('string_decoder').StringDecoder,
+      url = require('url'),
+      http = require('http'),
+      https = require('https'),
+      config = require('./config'),
+      fs = require('fs');
+
+let unifiedServer = {};
+
+unifiedServer.init = () => {
+    const httpServer = http.createServer((req, res) => {
+      unifiedServer.start(req, res);
+    });
+
+    let httpsServerParams = {
+      key : fs.readFileSync('./https/key.pem'),
+      cert : fs.readFileSync('./https/cert.pem')
+    }
+    const httpsServer = https.createServer(httpsServerParams, (req, res) => {
+      unifiedServer.start(req, res);
+    });
+
+    httpServer.listen(config.httpPort, () => {
+      console.log('Server started on port ' + config.httpPort + ' with ' + config.envName + ' evn' );
+    });
+    httpsServer.listen(config.httpsPort, () => {
+      console.log('Server started on port ' + config.httpsPort + ' with ' + config.envName + ' evn' );
+    });
+}
+
+unifiedServer.start = (req, res) => {
     let parsedUrl = url.parse(req.url, true),
         queryStringObj = parsedUrl.query,
         path = parsedUrl.pathname.replace(/^\/+|\/+$/g, ''),
